@@ -11,6 +11,7 @@ let pixelRatio = 1;
 let rockets = [];
 let particles = [];
 let messages = [];
+let flashes = [];
 let stars = [];
 let nextLaunchAt = 0;
 let lastFrame = performance.now();
@@ -116,6 +117,7 @@ function burst(rocket) {
   const maxParticles = compact ? 360 : 620;
   const available = Math.max(0, maxParticles - particles.length);
   const count = Math.min(amount, available);
+  const glitterCount = Math.min(compact ? 10 : 16, Math.max(0, available - count));
 
   for (let index = 0; index < count; index += 1) {
     const velocity = shapeVelocity(rocket.shape, index, count);
@@ -133,6 +135,28 @@ function burst(rocket) {
       size: random(1.15, 2.35),
       color: `hsl(${hue} 100% ${useAccent ? 76 : 66}%)`,
       trail: [],
+      twinkle: Math.random() > 0.54,
+      phase: random(0, Math.PI * 2),
+    });
+  }
+
+  for (let index = 0; index < glitterCount; index += 1) {
+    const angle = random(0, Math.PI * 2);
+    const speed = random(1.5, 4.1);
+    particles.push({
+      x: rocket.x,
+      y: rocket.y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      gravity: random(0.038, 0.058),
+      friction: 0.982,
+      alpha: 0.94,
+      decay: random(0.018, 0.028),
+      size: random(0.75, 1.35),
+      color: "#fff7c7",
+      trail: [],
+      twinkle: true,
+      phase: random(0, Math.PI * 2),
     });
   }
 
@@ -148,6 +172,17 @@ function burst(rocket) {
     size: compact ? 4 : 6,
     color: "#fff8d5",
     trail: [],
+    twinkle: false,
+    phase: 0,
+  });
+
+  flashes.push({
+    x: rocket.x,
+    y: rocket.y,
+    hue: rocket.hue,
+    age: 0,
+    lifetime: 17,
+    radius: compact ? 42 : 62,
   });
 
   if (rocket.message && messages.length < 3) {
@@ -209,6 +244,15 @@ function updateMessages(delta) {
   }
 }
 
+function updateFlashes(delta) {
+  for (let index = flashes.length - 1; index >= 0; index -= 1) {
+    flashes[index].age += delta;
+    if (flashes[index].age >= flashes[index].lifetime) {
+      flashes.splice(index, 1);
+    }
+  }
+}
+
 function drawStars(time) {
   context.globalCompositeOperation = "source-over";
   for (const star of stars) {
@@ -232,7 +276,23 @@ function drawTrail(trail, color, alpha, lineWidth) {
   context.stroke();
 }
 
-function drawFireworks() {
+function drawFlashes() {
+  context.globalCompositeOperation = "lighter";
+
+  for (const flash of flashes) {
+    const progress = flash.age / flash.lifetime;
+    const radius = flash.radius * (0.35 + progress * 0.65);
+    const alpha = Math.pow(1 - progress, 2) * 0.44;
+    const gradient = context.createRadialGradient(flash.x, flash.y, 0, flash.x, flash.y, radius);
+    gradient.addColorStop(0, `hsla(${flash.hue}, 100%, 88%, ${alpha})`);
+    gradient.addColorStop(0.28, `hsla(${flash.hue}, 100%, 70%, ${alpha * 0.55})`);
+    gradient.addColorStop(1, `hsla(${flash.hue}, 100%, 58%, 0)`);
+    context.fillStyle = gradient;
+    context.fillRect(flash.x - radius, flash.y - radius, radius * 2, radius * 2);
+  }
+}
+
+function drawFireworks(time) {
   context.globalCompositeOperation = "lighter";
 
   for (const rocket of rockets) {
@@ -246,8 +306,10 @@ function drawFireworks() {
   }
 
   for (const particle of particles) {
-    drawTrail(particle.trail, particle.color, particle.alpha * 0.22, particle.size * 0.65);
-    context.globalAlpha = particle.alpha;
+    const shimmer = particle.twinkle ? 0.62 + Math.sin(time * 0.018 + particle.phase) * 0.38 : 1;
+    const alpha = particle.alpha * shimmer;
+    drawTrail(particle.trail, particle.color, alpha * 0.25, particle.size * 0.65);
+    context.globalAlpha = alpha;
     context.fillStyle = particle.color;
     context.fillRect(
       particle.x - particle.size / 2,
@@ -301,13 +363,18 @@ function frame(time) {
 
   if (time >= nextLaunchAt) {
     launch();
-    nextLaunchAt = time + (reducedMotion ? random(2200, 3200) : random(850, 1450));
+    if (!reducedMotion && Math.random() < 0.24) {
+      launch(random(width * 0.18, width * 0.82), random(height * 0.2, height * 0.5));
+    }
+    nextLaunchAt = time + (reducedMotion ? random(2200, 3200) : random(620, 1040));
   }
 
   updateRockets(delta);
   updateParticles(delta);
   updateMessages(delta);
-  drawFireworks();
+  updateFlashes(delta);
+  drawFlashes();
+  drawFireworks(time);
   drawMessages();
   requestAnimationFrame(frame);
 }
