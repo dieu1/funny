@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Heart Bloom</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="scene" aria-label="Animated heart particle effect">
+      <canvas id="heart-canvas"></canvas>
+
+      <div class="aurora" aria-hidden="true"></div>
+      <div class="vignette" aria-hidden="true"></div>
+      <div class="glow glow-one" aria-hidden="true"></div>
+      <div class="glow glow-two" aria-hidden="true"></div>
+
+      <section class="title-block">
+        <!-- <p class="eyebrow">Luminous motion</p>
+        <h1>Heart Bloom</h1> -->
+      </section>
+
+      <div class="controls" aria-label="Effect controls">
+        <button class="control is-active" type="button" data-mode="rose">
+          Rose
+        </button>
+        <button class="control" type="button" data-mode="gold">Gold</button>
+        <button class="control" type="button" data-mode="dream">Dream</button>
+      </div>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
